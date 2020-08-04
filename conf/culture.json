@@ -1,0 +1,14 @@
+{
+    "base": {
+        "role": "admin"
+    },
+    "add": {
+        "role": "admin"
+    },
+    "list": {
+        "role": "admin"
+    },
+    "remove": {
+        "role": "admin"
+    }
+}
