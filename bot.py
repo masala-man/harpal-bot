@@ -23,6 +23,7 @@ async def on_ready():
 async def plugins(ctx):
 	if ctx.invoked_subcommand is None:
 		await ctx.send("cogs halp")
+		# add help embed
 
 @plugins.command(name='list')
 @commands.has_role('Moderator')
@@ -48,16 +49,15 @@ async def unload_cogs(ctx, cog_name):
 @client.group(name="settings")
 async def settings(ctx):
 	if ctx.invoked_subcommand is None:
-		await ctx.send("cogs halp")
+ 		await ctx.send("Settings help")
+		# add helptext
 
-@settings.command(name='prefix')
-@commands.has_role('Moderator')
-async def prefix(ctx, prefix):
-	with open('./conf/global.json', mode='r') as f:
-		file = json.load(f)
-	file['prefix'] = prefix
-	with open('./conf/global.json', mode='w+') as f:
-		json.dump(file, f)
+# @settings.command(name='prefix')
+# @commands.has_role('Moderator')
+# async def prefix(ctx, prefix):
+#	pass
+
+## OTHER
 
 @client.command()
 async def avatar(ctx, user: discord.Member):
