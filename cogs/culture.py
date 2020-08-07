@@ -45,8 +45,14 @@ class culture(commands.Cog, name='Kulcha'):
 		desc = ""
 		for x in range(len(file['videos'])):
 			desc = desc + "**{}** {}\n".format(self.text.number_blocks(x+1), file['videos'][x])
-		listEmbed = discord.Embed(title="PP's Taste", description=desc, color=0x00f1de)
-		await ctx.send(embed=listEmbed)
+		embed = discord.Embed(title="PP's Taste", description=desc, color=0x00f1de)
+		await ctx.send(embed=embed)
+
+	@culture.command()
+	async def help(self, ctx):
+		desc = f"Commands to post links randomly from a stored list\n\n`&culture` : Posts a random link\n`&culture add link` : Adds link\n`&culture remove link` : removes link\n`&culture list` : Posts a embed listing all links\n`&culture help` : This screen"
+		embed = discord.Embed(title="Help", description=desc, color=0x00f1de)
+		await ctx.send(embed=embed)
 
 def setup(client):
 	client.add_cog(culture(client))
