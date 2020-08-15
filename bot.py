@@ -51,16 +51,16 @@ async def list_cogs(ctx):
 @plugins.command(name='load')
 @commands.has_role(config['manager'])
 async def load_cogs(ctx, cog_name):
-	client.load_extension("cogs.{}".format(cog_name))
-	await ctx.send("Added `{}`".format(cog_name))
+	client.load_extension(f"cogs.{cog_name}")
+	await ctx.send(f"Added `{cog_name}`")
 	active_extensions.append(inactive_extensions.pop(inactive_extensions.index(cog_name)))
 
 @plugins.command(name='unload')
 @commands.has_role(config['manager'])
 async def unload_cogs(ctx, cog_name):
-	client.unload_extension("cogs.{}".format(cog_name))
-	await ctx.send("Removed `{}`".format(cog_name))
-	print("removed {}".format(cog_name))
+	client.unload_extension(f"cogs.{cog_name}")
+	await ctx.send(f"Removed `{cog_name}`")
+	print(f"removed {cog_name}")
 	inactive_extensions.append(active_extensions.pop(active_extensions.index(cog_name)))
 
 ## SETTINGS
@@ -84,6 +84,7 @@ async def prefix(ctx, prefix):
 @commands.has_permissions(administrator=True)
 async def manager(ctx, role: discord.Role):
 	config['manager'] = role.id
+	await ctx.send(f"Manager role set to `{role.name}`")
 	config_file.write(config)
 
 # TRIGGERS
@@ -129,6 +130,10 @@ async def avatar(ctx, user: discord.Member):
 	await ctx.send(user.avatar_url)
 
 @client.command()
+async def id(ctx, user: discord.Member):
+	await ctx.send(user.id)
+
+@client.command()
 async def pingspam(ctx, user: discord.Member):
 	await ctx.channel.send(user.display_name)
 	await ctx.channel.send('{} {}'.format(user.mention, user.display_name))
@@ -152,16 +157,16 @@ async def on_message(message):
 			await message.channel.send("daal dete hai")
 		for x in range(len(triggers['triggers'])):
 			if triggers['triggers'][x]['context'] in message.content:
-				await message.channel.send(triggers['triggers'][x]['response'])
+				await message.channel.send(triggers['triggers'][x]['response'].format(mention=message.author.mention))
 	await client.process_commands(message)
 
-initial_extensions = ['cogs.culture', 'cogs.poetry', 'cogs.fun']
+initial_extensions = config['cogs']
 active_extensions = []
 inactive_extensions = []
 
 if __name__ == '__main__':
 	for extension in initial_extensions:
-		client.load_extension(extension)
-		active_extensions.append(extension[5:])
+		client.load_extension(f"cogs.{extension}")
+		active_extensions.append(extension)
 
 client.run(getenv("TOKEN"))

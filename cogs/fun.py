@@ -29,6 +29,26 @@ class fun(commands.Cog, name='Funny'):
 	async def mock_error(self, ctx, error):
 		await ctx.send("`&mock This is a sentence`")
 
+	@commands.command()
+	async def shout(self, ctx, sentence, channel: discord.TextChannel=None):
+		if channel is None:
+			channel = ctx.channel
+		await channel.send(self.text.number_blocks(sentence))
+	
+	@shout.error
+	async def shout_error(self, ctx, error):
+		await ctx.send("`&shout \"this is a sentence\"`\nor\n`&shout \"This is a sentence\" #channel`")
+
+	@commands.command()
+	async def say(self, ctx, sentence, channel: discord.TextChannel=None):
+		if channel is None:
+			channel = ctx.channel
+		await channel.send(sentence)
+	
+	@say.error
+	async def say_error(self, ctx, error):
+		await ctx.send("`&say \"this is a sentence\"`\nor\n`&say \"This is a sentence\" #channel`")
+
 def setup(client):
 	client.add_cog(fun(client))
 	print("added fun")
