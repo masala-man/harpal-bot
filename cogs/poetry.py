@@ -3,13 +3,19 @@ from discord.ext.commands import MissingRequiredArgument
 import discord
 import json
 import requests
+import pymongo
+from .helpers.checks import perms_check
 
-class poetry(commands.Cog, name='Poemtry'):
+db_client = pymongo.MongoClient("mongodb://localhost:80")
+db = db_client["harpal-bot"]
+db_conf = db['conf']
+
+class poetry(commands.Cog, name='poetry'):
 	def __init__(self, client):
 		self.bot = client
 		self.path = "https://poetrydb.org/"
 
-	@commands.group()
+	@commands.group(name='poetry')
 	async def poetry(self, ctx):
 		if ctx.invoked_subcommand is None:
 			ctx.send("testing cog")
@@ -17,7 +23,7 @@ class poetry(commands.Cog, name='Poemtry'):
 	@poetry.command()
 	@commands.has_role('Moderator')
 	async def fetch(self, ctx, author, title):
-		request_path = self.path + "author,title/{};{}".format(author,title)
+		request_path = self.path + f"author,title/{author};{title}"
 		print(request_path)
 		request = requests.get(request_path)
 		print(request)
@@ -25,12 +31,17 @@ class poetry(commands.Cog, name='Poemtry'):
 		poem_lines = json.loads(request.content)[0]['lines']
 		desc = ""
 		for x in range(10):
-			desc = desc + poem_lines[x] + "\n"
+			desc += poem_lines[x] + "\n"
 		embed = discord.Embed(title=poem_title, description=desc, color=0x00f1de)
 		embed.set_author(name=json.loads(request.content)[0]['author'])
 		await ctx.send(embed=embed)
 
 
 def setup(client):
+	if db_conf.find({"_id": "poetry"}).count() == 0:
+		db_conf.insert_one({
+			"_id": "poetry",
+			})
+		print("poetry --> db")
 	client.add_cog(poetry(client))
 	print("added poetry")

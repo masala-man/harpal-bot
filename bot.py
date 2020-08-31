@@ -1,29 +1,55 @@
 from discord.ext import commands
 import discord
 import random
-from dotenv import load_dotenv
 from os import getenv
-from cogs.helpers.config import config_helper
-import json
-load_dotenv()
+import pymongo
+from discord.utils import get
+from cogs.helpers.checks import perms_check
 
-config_file = config_helper('./conf/global.json')
-trigger_file = config_helper('./data/triggers.json')
-config = config_file.read()
-triggers = trigger_file.read()
+db_client = pymongo.MongoClient("mongodb://localhost:80")
+db = db_client["harpal-bot"]
+db_conf = db["conf"]
+db_trig = db["trig"]
 
-default_prefix = config['prefix']['default']
-custom_prefix = config['prefix']['custom']
+if db_conf.find({"_id": "global"}).count() == 0:
+	db_conf.insert_one({
+		"_id": "global",
+		"prefix": {"default": "&", "custom": ""},
+		"manager": "",
+		"cogs": ["coffee", "fun", "poetry", "utils"]
+		}
+		)
+if db_conf.find({"_id": "core"}).count() == 0:
+	db_conf.insert_one({
+		"_id": "core",
+		"cogs": {
+			"add": {"role": ""},
+			"remove": {"role": ""},
+			"list": {"role": ""}
+		},
+		"trigger": {
+			"add": {"role": ""},
+			"remove": {"role": ""},
+			"list": {"role": ""}
+		},
+		"perms": {
+			"role": {"role": ""},
+		},
+		"settings": {
+			"prefix": {"role": ""}
+		}
+		})
 
 async def determine_prefix(bot, message):
 	guild = message.guild
+	query = db_conf.find_one({"_id": "global"}, {"prefix": 1})
 	if guild:
-		if str(guild.id) in custom_prefix:
-			return custom_prefix[str(guild.id)]
+		if query['prefix']['custom'] != "":
+			return query['prefix']['custom']
 		else:
-			return default_prefix
+			return query['prefix']['default']
 	else:
-		return default_prefix
+		return query['prefix']['default']
 
 client = commands.Bot(command_prefix=determine_prefix)
 
@@ -41,7 +67,7 @@ async def plugins(ctx):
 		await ctx.send(embed=embed)
 
 @plugins.command(name='list')
-@commands.has_role(config['manager'])
+@commands.check(perms_check)
 async def list_cogs(ctx):
 	cog_list_embed = discord.Embed(title="Active Cogs", description=f"{' , '.join(active_extensions)}", color=0x3CC73E)
 	await ctx.send(embed=cog_list_embed)
@@ -49,14 +75,14 @@ async def list_cogs(ctx):
 	await ctx.send(embed=cog_list_embed)
 
 @plugins.command(name='load')
-@commands.has_role(config['manager'])
+@commands.check(perms_check)
 async def load_cogs(ctx, cog_name):
 	client.load_extension(f"cogs.{cog_name}")
 	await ctx.send(f"Added `{cog_name}`")
 	active_extensions.append(inactive_extensions.pop(inactive_extensions.index(cog_name)))
 
 @plugins.command(name='unload')
-@commands.has_role(config['manager'])
+@commands.check(perms_check)
 async def unload_cogs(ctx, cog_name):
 	client.unload_extension(f"cogs.{cog_name}")
 	await ctx.send(f"Removed `{cog_name}`")
@@ -73,79 +99,86 @@ async def settings(ctx):
 		await ctx.send(embed=embed)
 
 @settings.command()
+@commands.check(perms_check)
 @commands.guild_only()
-@commands.has_role(config['manager'])
 async def prefix(ctx, prefix):
-	custom_prefix[ctx.guild.id] = prefix
+	db_conf.update({"_id": "global"}, {"$set": {"prefix": {"custom": prefix, "default": "&"}}})
 	await ctx.send(f"Prefix set to `{prefix}`")
-	config_file.write(config)
 
 @settings.command()
 @commands.has_permissions(administrator=True)
 async def manager(ctx, role: discord.Role):
-	config['manager'] = role.id
+	db_conf.update({"_id": "global"}, {"$set": {"manager": role.id}})
+	db_conf.update({"_id": "core"},{
+	"cogs": {
+		"add": {"role": role.id},
+		"remove": {"role": role.id},
+		"list": {"role": role.id}
+	},
+	"trigger": {
+		"add": {"role": role.id},
+		"remove": {"role": role.id},
+		"list": {"role": role.id}
+	},
+	"perms": {
+		"role": {"role": role.id},
+	},
+	"settings": {
+		"prefix": {"role": role.id}
+	}
+	})
 	await ctx.send(f"Manager role set to `{role.name}`")
-	config_file.write(config)
 
 # TRIGGERS
 
 @client.group(name="trigger")
 async def trigger(ctx):
 	if ctx.invoked_subcommand is None:
-		desc = "Auto-responses based on a specific trigger\n\n`&trigger add \"word\" \"the response\"` : adds a trigger to the bot\n`&trigger remove id` : removes the trigger with that id\n`&trigger list` : lists all registered triggers"
+		desc = "Auto-responses based on a specific trigger\n\n`&trigger add \"word\" \"the response\"` : adds a trigger to the bot\n`&trigger remove id` : removes the trigger with specified context\n`&trigger list` : lists all registered triggers"
 		embed = discord.Embed(title="Help", description=desc, color=0x00f1de)
 		await ctx.send(embed=embed)
 
 @trigger.command()
-@commands.has_role(config['manager'])
+@commands.check(perms_check)
 async def add(ctx, trigger_context, trigger_response):
 	trigger = {}
 	trigger['context'] = trigger_context
 	trigger['response'] = trigger_response
-	triggers['triggers'].append(trigger)
-	trigger_file.write(triggers)
-	await ctx.send("Added trigger")
-
+	db_trig.insert_one({"context": trigger_context, "response": trigger_response})
+	await ctx.send(f"Added trigger for `{trigger_context}`")
 
 @trigger.command()
-@commands.has_role(config['manager'])
-async def remove(ctx, trigger_id):
-	triggers['triggers'].pop(int(trigger_id)-1)
-	trigger_file.write(triggers)
-	await ctx.send("Removed trigger")
+@commands.check(perms_check)
+async def remove(ctx, trigger_context):
+	db_trig.remove({"context": trigger_context})
+	await ctx.send(f"Removed trigger for `{trigger_context}`")
 
 @trigger.command()
-@commands.has_role(config['manager'])
+@commands.check(perms_check)
 async def list(ctx):
+	triggers = db_trig.find()
 	desc = ""
-	for x in range(len(triggers['triggers'])):
-		desc = desc + f"**{x+1}.**\n   Trigger: `{triggers['triggers'][x]['context']}`\n   Response: `{triggers['triggers'][x]['response']}`\n\n"
+	n = 0
+	for trigger in triggers:
+		desc += f"**{n+1}.**\n   Trigger: `{trigger['context']}`\n   Response: `{trigger['response']}`\n\n"
+		n += 1
 	embed = discord.Embed(title="Triggers", description=desc, color=0x00f1de)
 	await ctx.send(embed=embed)
 
-## OTHER
+@client.group(name="perms")
+async def perms(ctx):
+	if ctx.invoked_subcommand is None:
+		desc="Oppressing gamers 101\n\n`&perms role cog command.subcommand role` : restricts command.subcommnd to a role"
+		embed = discord.Embed(title="Help", description=desc, color=0x00f1de)
+		await ctx.send(embed=embed)
 
-@client.command()
-async def avatar(ctx, user: discord.Member):
-	await ctx.send(user.avatar_url)
+@perms.command(name='role')
+@commands.check(perms_check)
+async def role(ctx, cog, command, role: discord.Role):
+	query = db_conf.find_one({"_id": cog})
+	db_conf.update({"_id": cog}, {"$set": {f"{command}.role": role.id}})
+	await ctx.send(f'{command} restricted to the {role} role')
 
-@client.command()
-async def id(ctx, user: discord.Member):
-	await ctx.send(user.id)
-
-@client.command()
-async def pingspam(ctx, user: discord.Member):
-	await ctx.channel.send(user.display_name)
-	await ctx.channel.send('{} {}'.format(user.mention, user.display_name))
-	await ctx.channel.send('{} {}'.format(user.display_name, user.mention))
-	await ctx.channel.send(user.mention)
-
-@pingspam.error
-async def pingspam_error(ctx, error):
-	if isinstance(error, (commands.MissingRequiredArgument)):
-		await ctx.send("Ping someone to annoy, wanker `&pingspam @masala_man#4534`")
-	else:
-		raise error
 
 @client.event
 async def on_message(message):
@@ -155,12 +188,21 @@ async def on_message(message):
 			await message.channel.send("namak")
 			await message.channel.send("shamak")
 			await message.channel.send("daal dete hai")
-		for x in range(len(triggers['triggers'])):
-			if triggers['triggers'][x]['context'] in message.content:
-				await message.channel.send(triggers['triggers'][x]['response'].format(mention=message.author.mention))
+		triggers = db_trig.find()
+		for trigger in triggers:
+			if trigger['context'] in message.content:
+				await message.channel.send(trigger['response'].format(mention=message.author.mention))
 	await client.process_commands(message)
 
-initial_extensions = config['cogs']
+@client.event
+async def on_server_join(ctx):
+	for guild in bot.guilds:
+		for channel in guild.text_channels:
+			if channel.permissions_for(guild.me).say:
+				embed = discord.Embed(title="Help", description="Hello!\nSetup with `&settings manager @role`\nHelp with `&help`", color=0x00f1de)
+				await ctx.send(embed=embed)
+	
+initial_extensions = db_conf.find_one({"_id": "global"},{"cogs": 1})['cogs']
 active_extensions = []
 inactive_extensions = []
 
@@ -169,4 +211,4 @@ if __name__ == '__main__':
 		client.load_extension(f"cogs.{extension}")
 		active_extensions.append(extension)
 
-client.run(getenv("TOKEN"))
+client.run(getenv("DISCORD_TOKEN"))
