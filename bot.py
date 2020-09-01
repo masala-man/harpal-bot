@@ -23,8 +23,8 @@ if db_conf.find({"_id": "core"}).count() == 0:
 	db_conf.insert_one({
 		"_id": "core",
 		"cogs": {
-			"add": {"role": ""},
-			"remove": {"role": ""},
+			"load": {"role": ""},
+			"unload": {"role": ""},
 			"list": {"role": ""}
 		},
 		"trigger": {
@@ -37,7 +37,8 @@ if db_conf.find({"_id": "core"}).count() == 0:
 		},
 		"settings": {
 			"prefix": {"role": ""}
-		}
+		},
+		"&help": {"role": ""}
 		})
 
 async def determine_prefix(bot, message):
@@ -111,8 +112,8 @@ async def manager(ctx, role: discord.Role):
 	db_conf.update({"_id": "global"}, {"$set": {"manager": role.id}})
 	db_conf.update({"_id": "core"},{
 	"cogs": {
-		"add": {"role": role.id},
-		"remove": {"role": role.id},
+		"load": {"role": role.id},
+		"unload": {"role": role.id},
 		"list": {"role": role.id}
 	},
 	"trigger": {
@@ -125,7 +126,8 @@ async def manager(ctx, role: discord.Role):
 	},
 	"settings": {
 		"prefix": {"role": role.id}
-	}
+	},
+	"help": {"role": role.id}
 	})
 	await ctx.send(f"Manager role set to `{role.name}`")
 

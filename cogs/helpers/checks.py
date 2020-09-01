@@ -17,10 +17,10 @@ def perms_check(ctx):
 	query = db_conf.find_one({"_id": cog})
 	if parent is None:
 		role = query[command]['role']
-		if role == "all" or role == "@everyone":
-			return True
 	else:
 		role = query[parent.name][command]['role']
+	if role == "all" or role == "@everyone":
+		return True
 	if get(ctx.guild.roles, id=role) in ctx.message.author.roles:
 		return True
 	else:

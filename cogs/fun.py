@@ -18,8 +18,7 @@ class fun(commands.Cog, name='fun'):
 	async def clap(self, ctx, sentence, emote: discord.Emoji=None):
 		if emote is None:
 			emote = ":clap:"
-		emote = emote + emote + emote
-		sentence = sentence.replace(" ", emote)
+		sentence = sentence.replace(" ", f"{emote}{emote}{emote}")
 		await ctx.send(sentence)
 
 	@clap.error
@@ -29,9 +28,7 @@ class fun(commands.Cog, name='fun'):
 	
 	@commands.command(name='mock')
 	@commands.check(perms_check)
-	async def mock(self, ctx, sentence, *args):
-		for ar in args:
-			sentence = f"{sentence} {ar}"
+	async def mock(self, ctx, sentence):
 		await ctx.send(self.text.mock(sentence))
 
 	@mock.error

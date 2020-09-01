@@ -20,13 +20,11 @@ class poetry(commands.Cog, name='poetry'):
 		if ctx.invoked_subcommand is None:
 			ctx.send("testing cog")
 
-	@poetry.command()
-	@commands.has_role('Moderator')
+	@poetry.command(name='fetch')
+	@commands.check(perms_check)
 	async def fetch(self, ctx, author, title):
 		request_path = self.path + f"author,title/{author};{title}"
-		print(request_path)
 		request = requests.get(request_path)
-		print(request)
 		poem_title = json.loads(request.content)[0]['title']
 		poem_lines = json.loads(request.content)[0]['lines']
 		desc = ""
@@ -41,6 +39,9 @@ def setup(client):
 	if db_conf.find({"_id": "poetry"}).count() == 0:
 		db_conf.insert_one({
 			"_id": "poetry",
+			"poetry": {
+				"fetch": {"role": "@everyone"}
+			}
 			})
 		print("poetry --> db")
 	client.add_cog(poetry(client))

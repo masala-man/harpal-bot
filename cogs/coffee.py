@@ -4,7 +4,6 @@ import discord
 import random
 from .helpers.checks import perms_check
 from .helpers.text import text_helper
-
 import pymongo
 
 db_client = pymongo.MongoClient("mongodb://localhost:80")
@@ -83,7 +82,7 @@ def setup(client):
 				"list": {"role": "@everyone"},
 				"help": {"role": "@everyone"},
 			},
-			"pingspam": {"sender": {"role": "@everyone"}, "recipient": {"role": "@everyone"}}
+			"pingspam": {"role": "@everyone"}
 			})
 		print("coffee --> db")
 	client.add_cog(coffee(client))
