@@ -197,6 +197,12 @@ async def on_message(message):
 	await client.process_commands(message)
 
 @client.event
+async def on_message_cousin(message):
+	if client.user.id != message.author.id:
+		if "cousin" in message.content and "konkani" in message.content:
+			await message.channel.send(""https://cdn.discordapp.com/attachments/647475308819382276/756423027646005268/Screenshot_20200831-091353-1.png"")
+	await client.process_commands(message)
+@client.event
 async def on_server_join(ctx):
 	for guild in bot.guilds:
 		for channel in guild.text_channels:
