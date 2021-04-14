@@ -181,7 +181,6 @@ async def role(ctx, cog, command, role: discord.Role):
 	db_conf.update({"_id": cog}, {"$set": {f"{command}.role": role.id}})
 	await ctx.send(f'{command} restricted to the {role} role')
 
-
 @client.event
 async def on_message(message):
 	if client.user.id != message.author.id:
@@ -195,6 +194,14 @@ async def on_message(message):
 			if trigger['context'] in message.content:
 				await message.channel.send(trigger['response'].format(mention=message.author.mention))
 	await client.process_commands(message)
+@client.event
+async def on_message_cousin(message):
+	if client.user.id != message.author.id:
+		if "cousin" in message.content and "konkani" in message.content:
+			await message.channel.send("https://cdn.discordapp.com/attachments/647475308819382276/756423027646005268/Screenshot_20200831-091353-1.png")
+	await client.process_commands(message)
+				       
+				       
 
 @client.event
 async def on_server_join(ctx):
