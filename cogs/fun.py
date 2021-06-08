@@ -4,7 +4,7 @@ from .helpers.text import text_helper
 from .helpers.checks import perms_check
 import pymongo
 
-db_client = pymongo.MongoClient("mongodb://localhost:80")
+db_client = pymongo.MongoClient("mongodb://localhost:27017")
 db = db_client["harpal-bot"]
 db_conf = db['conf']
 
