@@ -2,9 +2,12 @@ from discord.ext import commands
 import discord
 import random
 from os import getenv
+from dotenv import load_dotenv
 import pymongo
 from discord.utils import get
 from cogs.helpers.checks import perms_check
+
+load_dotenv()
 
 db_client = pymongo.MongoClient("mongodb://localhost:27017")
 db = db_client["harpal-bot"]
@@ -194,6 +197,7 @@ async def on_message(message):
 			if trigger['context'] in message.content:
 				await message.channel.send(trigger['response'].format(mention=message.author.mention))
 	await client.process_commands(message)
+
 @client.event
 async def on_message_cousin(message):
 	if client.user.id != message.author.id:
